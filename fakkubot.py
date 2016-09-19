@@ -23,13 +23,6 @@ async def on_member_join(member):
         fmt = 'Welcome {0.mention} to {1.name}!'
         await bot.send_message(server, fmt.format(member, server))
 
-
-@bot.command()
-async def cummies():
-    await bot.say(
-        'Just me and my 💕daddy💕, hanging out I got pretty hungry🍆 so I started to pout 😞 He asked if I was down ⬇for something yummy 😍🍆 and I asked what and he said he\'d give me his 💦cummies!💦 Yeah! Yeah!💕💦 I drink them!💦 I slurp them!💦 I swallow them whole💦 😍 It makes 💘daddy💘 😊happy😊 so it\'s my only goal... 💕💦😫Harder daddy! Harder daddy! 😫💦💕 1 cummy💦, 2 cummy💦💦, 3 cummy💦💦💦, 4💦💦💦💦 I\'m 💘daddy\'s💘 👑princess 👑but I\'m also a whore! 💟 He makes me feel squishy💗!He makes me feel good💜! 💘💘💘He makes me feel everything a little should!~ 💘💘💘 👑💦💘Wa-What!💘💦👑')
-
-
 @bot.command(description='Get a random post from r/blackpeopletwitter')
 async def bpt(limit=100):
     data = await get_json('https://www.reddit.com/r/blackpeopletwitter.json?limit=' + str(limit))
