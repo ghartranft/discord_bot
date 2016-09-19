@@ -18,8 +18,7 @@ bot = commands.Bot(command_prefix='!', description='bot owned by Sindalf')
 
 @bot.event
 async def on_member_join(member):
-    server = member.server
-    if server.id == '222895741918511105':
+    if member.server.id == '222895741918511105':
         fmt = 'Welcome {0.mention} to {1.name}!'
         await bot.send_message(server, fmt.format(member, server))
 
@@ -55,7 +54,7 @@ async def up(url="https://www.fakku.net/"):
                 await bot.say(url + " looks up from here! (USA East Coast)")
             else:
                 await bot.say(url + " looks down from here! (USA East Coast)")
-    except urllib.error.URLError:  # redudent command
+    except urllib.error.URLError:  # redundant command
         await bot.say(url + " is an invalid url or not up!")
     except urllib.error.HTTPError:  # This may never happen but just in case
         await bot.say(url + " looks down from here! (USA East Coast)")
