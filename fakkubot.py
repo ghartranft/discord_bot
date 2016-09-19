@@ -102,19 +102,28 @@ async def detect_http(url):
 
 
 async def get_json(url):
-    while True:
-        try:
-            with urllib.request.urlopen(url, timeout=10) as response:
-                html = response.read().decode('UTF-8')
-                return json.loads(html)
-        except:  # For some reason HTTPError wouldnt catch an HTTPError ?
-            print('http error in get link')
-            return None
+    try:
+        with urllib.request.urlopen(url, timeout=10) as response:
+            html = response.read().decode('UTF-8')
+             return json.loads(html)
+    except:  # For some reason HTTPError wouldnt catch an HTTPError ?
+        print('http error in get link')
+        return None
+
+
+async def get_html(url):
+    try:
+        with urllib.request.urlopen(url, timeout=10) as response:
+            html = response.read().decode('UTF-8')
+            return html
+    except:  # For some reason HTTPError wouldnt catch an HTTPError ?
+        print('http error in get link')
+        return None
 
 
 # Does not return without success
 # returns a json object
-async def getfakkujson():
+async def get_fakku_json():
     while True:
         try:
             with urllib.request.urlopen('https://api.fakku.net/index', timeout=10) as response:
@@ -123,20 +132,7 @@ async def getfakkujson():
         except:  # For some reason HTTPError wouldnt catch an HTTPError ?
             print('http error!')
             await asyncio.sleep(60)  # sleep to not grab a dead link over and over
-
-
-# Can fail
-async def get_html(url):
-    while True:
-        try:
-            with urllib.request.urlopen(url, timeout=10) as response:
-                html = response.read().decode('UTF-8')
-                return html
-        except:  # For some reason HTTPError wouldnt catch an HTTPError ?
-            print('http error in get link')
-            return None
-
-
+            
 async def detect_store_link(soup):
     if soup is not None:
         a = soup.findAll('a', class_="button green")  # Find green button class
@@ -187,7 +183,7 @@ async def fakku_script():
     await bot.wait_until_ready()  # will not begin until the bot is logged in
     most_recent = 0  # initialize most_recent
     while True:
-        r = await getfakkujson()
+        r = await get_fakku_json()
         if most_recent == 0:  # first request
             for s in r['index']:
                 try:
