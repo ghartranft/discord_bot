@@ -98,14 +98,14 @@ async def rand():
 
 
 async def detect_http(url):
-    return re.match(p, url)
+    return re.match(p, url)  # regex search for http or https is at the start of url
 
 
 async def get_json(url):
     try:
         with urllib.request.urlopen(url, timeout=10) as response:
             html = response.read().decode('UTF-8')
-             return json.loads(html)
+            return json.loads(html)
     except:  # For some reason HTTPError wouldnt catch an HTTPError ?
         print('http error in get link')
         return None
@@ -199,15 +199,15 @@ async def fakku_script():
                     if int(s['content_date']) > most_recent:  # compare against the last release
                         m = manga(s)  # create manga object
                         m.populate()  # populate the object with manga details, author, tags, etc
-                        most_recent_x = int(s['content_date'])  # set new most_recent value
+                        most_recent_x = int(s['content_date'])  # most most recent value in the loop
 
-                        html = await get_html(s['content_url'])
+                        html = await get_html(s['content_url'])  # gets the manga page
                         if html is not None:
-                            soup = BeautifulSoup(html, 'html.parser')
-                            store_link = await detect_store_link(soup)
-                            m.set_store_link(store_link)
-                            magazine_text = await detect_magazine_text(soup)
-                            m.set_magazine_text(magazine_text)
+                            soup = BeautifulSoup(html, 'html.parser')  # start up html parser
+                            store_link = await detect_store_link(soup)  # see if the store link exists
+                            m.set_store_link(store_link)  # set store link
+                            magazine_text = await detect_magazine_text(soup)  # see if the magazine link exists
+                            m.set_magazine_text(magazine_text)  # set magazine link
 
                         print("New Release!")
                         release_string = await manga_string(m, 'New Release! \n')
@@ -222,4 +222,4 @@ async def fakku_script():
 
 bot.loop.set_debug(True)
 bot.loop.create_task(fakku_script())
-bot.run(password.Token)
+bot.run(password.Token) # Put your own discord token here
