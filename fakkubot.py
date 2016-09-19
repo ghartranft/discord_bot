@@ -27,7 +27,7 @@ async def bpt(limit=100):
     data = await get_json('https://www.reddit.com/r/blackpeopletwitter.json?limit=' + str(limit))
     if data is not None:
         data = data['data']['children']
-        num = random.randint(1, len(data))
+        num = random.randint(1, len(data)-1)
         url = data[num]['data']['url']
         await bot.say(url)
     else:
@@ -69,12 +69,12 @@ async def rand():
         num = item.text[11:]
         n = int(num)
         print(n)
-        n = random.randint(1, n)
+        n = random.randint(1, n-1)
         data = await get_html('https://www.fakku.net/hentai/newest/page/' + str(n))
         if data is not None:
             soup = BeautifulSoup(data, 'html.parser')
             items = soup.findAll('a', class_='content-title')
-            n = random.randint(0, len(items))
+            n = random.randint(0, len(items)-1)
             print(items[n]['href'][8:])
             link = items[n]['href'][8:]
             data = await get_json('https://api.fakku.net/manga/' + link)
