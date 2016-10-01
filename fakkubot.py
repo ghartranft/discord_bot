@@ -18,7 +18,8 @@ bot = commands.Bot(command_prefix='!', description='bot owned by Sindalf')
 
 @bot.event
 async def on_member_join(member):
-    if member.server.id == '222895741918511105':
+    server = member.server
+    if server.id == '222895741918511105':
         fmt = 'Welcome {0.mention} to {1.name}!'
         await bot.send_message(server, fmt.format(member, server))
 
@@ -96,6 +97,7 @@ async def rand():
     if data is None:
         print("Error. Is fakku up?")
 
+        
 
 async def detect_http(url):
     return re.match(p, url)  # regex search for http or https is at the start of url
@@ -159,13 +161,17 @@ async def detect_magazine_text(soup):
 
 
 async def manga_string(m, release=''):
+    artists = ", ".join(m.content_artists)
+        
     release += 'Name: ' + \
-               m.content_name + '\nAuthor(s): ' + str(m.content_artists)
-
+               m.content_name + '\nArtists: ' + artists
+    
     if m.magazine_text is not None:
         release += '\nMagazine: ' + m.magazine_text
 
-    release += '\nTags: ' + str(m.content_tags) + '\n' + m.content_url
+    tags = ", ".join(m.content_tags)
+    
+    release += '\nTags: ' + tags + '\n' + m.content_url
 
     if m.store_link is not None:
         release += '\nBuy it here at: ' + m.store_link
@@ -177,6 +183,7 @@ async def on_ready():
     print(bot.user.name)
     print(bot.user.id)
     print('------')
+
 
 
 async def fakku_script():
