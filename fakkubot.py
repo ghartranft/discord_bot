@@ -44,7 +44,12 @@ async def shotweb():
 async def joygun():
     await bot.say(":joy: :gun:")
 
-
+@bot.command(description="checkem")
+async def roll(start=0, limit=100):
+    num = random.randint(start, limit)
+    string = ':' + str(num) + ':'
+    await bot.say(string)
+    
 @bot.command(description='Check if a website is online. Default=https://www.fakku.net/')
 async def up(url="https://www.fakku.net/"):
     if await detect_http(url) is None:  # detects if the front of the url contains http:// or https://
@@ -97,7 +102,6 @@ async def rand():
     if data is None:
         print("Error. Is fakku up?")
 
-        
 
 async def detect_http(url):
     return re.match(p, url)  # regex search for http or https is at the start of url
