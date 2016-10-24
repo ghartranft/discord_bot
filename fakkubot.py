@@ -8,6 +8,7 @@ from discord.ext import commands
 import random
 from Manga import manga
 import password
+import requests
 
 # All functions are async so we can interrupt them at any time and resume another
 
@@ -109,19 +110,19 @@ async def detect_http(url):
 
 async def get_json(url):
     try:
-        with urllib.request.urlopen(url, timeout=10) as response:
-            html = response.read().decode('UTF-8')
-            return json.loads(html)
+        data = requests.get(url, timeout=10)
+        data.encoding = 'utf-8'
+        return data.json()
     except:  # For some reason HTTPError wouldnt catch an HTTPError ?
-        print('http error in get link')
+        print('json error in get link')
         return None
 
 
 async def get_html(url):
     try:
-        with urllib.request.urlopen(url, timeout=10) as response:
-            html = response.read().decode('UTF-8')
-            return html
+        data = requests.get(url, timeout=10)
+        data.encoding = 'utf-8'
+        return data.text
     except:  # For some reason HTTPError wouldnt catch an HTTPError ?
         print('http error in get link')
         return None
