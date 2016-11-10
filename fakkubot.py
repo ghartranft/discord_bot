@@ -45,6 +45,14 @@ async def shotweb():
 async def joygun():
     await bot.say(":joy: :gun:")
 
+@bot.command(description=":clap:")
+async def clap(*message):
+    a = ' '.join(message)
+    a = a.split(" ")
+    a = " :clap: ".join(a)
+    await bot.say(a)
+    
+    
 @bot.command(descriptoin="charge me daddy")
 async def charge():
     await bot.say(":regional_indicator_c: :regional_indicator_h: :regional_indicator_a: :regional_indicator_r: :regional_indicator_g: :regional_indicator_e:  :regional_indicator_m: :regional_indicator_e:  :regional_indicator_d: :regional_indicator_a: :regional_indicator_d: :regional_indicator_d: :regional_indicator_y:!")
