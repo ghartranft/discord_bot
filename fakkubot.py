@@ -47,9 +47,7 @@ async def joygun():
 
 @bot.command(description=":clap:")
 async def clap(*message):
-    a = ' '.join(message)
-    a = a.split(" ")
-    a = " :clap: ".join(a)
+    a = " :clap: ".join(message)
     await bot.say(a)
     
     
