@@ -45,6 +45,10 @@ async def shotweb():
 async def joygun():
     await bot.say(":joy: :gun:")
 
+@bot.command(descriptoin="charge me daddy")
+async def charge():
+    await bot.say(":regional_indicator_c: :regional_indicator_h: :regional_indicator_a: :regional_indicator_r: :regional_indicator_g: :regional_indicator_e:  :regional_indicator_m: :regional_indicator_e:  :regional_indicator_d: :regional_indicator_a: :regional_indicator_d: :regional_indicator_d: :regional_indicator_y:!")
+    
 @bot.command(description="checkem")
 async def roll(start=0, limit=100):
     num = random.randint(start, limit)
@@ -230,6 +234,7 @@ async def fakku_script():
                     pass
         most_recent = most_recent_x
         await asyncio.sleep(60)  # Sleep for 60seconds
+
 
 
 bot.loop.set_debug(True)
