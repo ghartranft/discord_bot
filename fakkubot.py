@@ -113,7 +113,16 @@ async def rand():
     if data is None:
         print("Error. Is fakku up?")
 
-
+@bot.command(description=":regional_indicator_")
+async def text(*message : str):
+    string = ""
+    for x in message:
+        for i in x.lower():
+            append = ":regional_indicator_" + i + ":"
+            string +=  append
+        string += " "
+    await bot.say(string)
+    
 async def detect_http(url):
     return re.match(p, url)  # regex search for http or https is at the start of url
 
