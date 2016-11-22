@@ -120,7 +120,7 @@ async def text(*message : str):
         for i in x.lower():
             append = ":regional_indicator_" + i + ":"
             string +=  append
-        string += " "
+        string += "   "
     await bot.say(string)
     
 async def detect_http(url):
