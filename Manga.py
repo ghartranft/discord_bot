@@ -27,7 +27,11 @@ class manga:
         self.populate_name()
         self.populate_url()
         self.populate_date()
-        self.populate_artists(self.content['content_artists'], len(self.content['content_artists']))
+        try:
+            self.populate_artists(self.content['content_artists'], len(self.content['content_artists']))
+        except KeyError:
+            self.content_artists = None
+        
         self.populate_tags(self.content['content_tags'], len(self.content['content_tags']))
 
     def set_store_link(self, link):

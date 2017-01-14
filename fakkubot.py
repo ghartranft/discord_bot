@@ -36,6 +36,17 @@ async def bpt(limit=100):
         await bot.say('Could not receive reddit json')
 
 
+@bot.command(description='Get a random post from r/woof_irl')
+async def bork(limit=50):
+    data = await get_json('https://www.reddit.com/r/woof_irl.json?limit=' + str(limit))
+    if data is not None:
+        data = data['data']['children']
+        num = random.randint(1, len(data)-1)
+        url = data[num]['data']['url']
+        await bot.say(url)
+    else:
+        await bot.say('Could not receive reddit json')
+        
 @bot.command(description='How do I shot web?')
 async def shotweb():
     await bot.say("How do I shot web? \n https://cdn.drawception.com/images/panels/2012/6-14/GGFpZEHKLY-2.png")
@@ -123,13 +134,20 @@ async def text(*message : str):
         string += "   "
     await bot.say(string)
     
+@bot.command(description="its that time")
+async def itsthattime():
+    await bot.say('https://www.youtube.com/watch?v=shCYA2J-De8')
+    
 async def detect_http(url):
     return re.match(p, url)  # regex search for http or https is at the start of url
 
 
-async def get_json(url):
+async def get_json(url,cookies=None):
     try:
-        data = requests.get(url, timeout=10)
+        headers = {
+        'User-Agent': 'discordbot'  # This is another valid field
+        }
+        data = requests.get(url, timeout=10,cookies=cookies, headers=headers)
         data.encoding = 'utf-8'
         return data.json()
     except:  # For some reason HTTPError wouldnt catch an HTTPError ?
@@ -137,25 +155,23 @@ async def get_json(url):
         return None
 
 
-async def get_html(url):
+async def get_html(url,cookies=None):
     try:
-        data = requests.get(url, timeout=10)
+        data = requests.get(url, timeout=10,cookies=cookies)
         data.encoding = 'utf-8'
         return data.text
     except:  # For some reason HTTPError wouldnt catch an HTTPError ?
         print('http error in get link')
         return None
 
-
-# Does not return without success
-# returns a json object
-async def get_fakku_json():
+#Must be successful
+async def must_get_request(url,cookies=None):
     while True:
         try:
-            with urllib.request.urlopen('https://api.fakku.net/index', timeout=10) as response:
-                html = response.read().decode('UTF-8')
-                return json.loads(html)
-        except:  # For some reason HTTPError wouldnt catch an HTTPError ?
+            data = requests.get(url, timeout=10,cookies=cookies)
+            data.encoding = 'utf-8'
+            return data
+        except:
             print('http error!')
             await asyncio.sleep(60)  # sleep to not grab a dead link over and over
             
@@ -185,11 +201,14 @@ async def detect_magazine_text(soup):
 
 
 async def manga_string(m, release=''):
-    artists = ", ".join(m.content_artists)
+    if m.content_artists is not None:
+        artists = ", ".join(m.content_artists)
         
     release += 'Name: ' + \
-               m.content_name + '\nArtists: ' + artists
+               m.content_name
     
+    if m.content_artists is not None:
+        release += '\nArtists: ' + artists
     if m.magazine_text is not None:
         release += '\nMagazine: ' + m.magazine_text
 
@@ -209,49 +228,59 @@ async def on_ready():
     print('------')
 
 
-
+'''
+I want this to crash if it fails
+'''
+async def login(username, password):
+    r = requests.post('https://www.fakku.net/login/submit', data = {'username':username,'password':password})
+    return r
+    
+async def get_front_page_links(soup):
+    items = soup.findAll('a', class_='content-title')
+    links = set()
+    for manga in items:
+        link = manga['href'][8:]
+        links.add(link)
+    return links
+            
 async def fakku_script():
-    await bot.wait_until_ready()  # will not begin until the bot is logged in
-    most_recent = 0  # initialize most_recent
+    await bot.wait_until_ready()  # will not begin until the bot is logged in.
+    manga_set = set()
+    first = True
+    r  = await login(password.username, password.password)
+    cookies = r.cookies  
     while True:
-        r = await get_fakku_json()
-        if most_recent == 0:  # first request
-            for s in r['index']:
-                try:
-                    if most_recent < int(s['content_date']):  # iteration required to prevent stickied releases
-                        most_recent = int(s['content_date'])
-                        most_recent_x = most_recent
-                        print(most_recent)
-                except KeyError:  # forum posts will cause this
-                    pass
-        else:  # all requests after the first
-            for s in reversed(r['index']):  # iterate in case multiple releases are released at once.
-                try:
-                    if int(s['content_date']) > most_recent:  # compare against the last release
-                        m = manga(s)  # create manga object
-                        m.populate()  # populate the object with manga details, author, tags, etc
-                        most_recent_x = int(s['content_date'])  # most most recent value in the loop
+        r = await must_get_request('https://fakku.net', cookies=cookies)
+        soup = BeautifulSoup(r.text, 'html.parser')
+        links = await get_front_page_links(soup)
+        if first == True:
+            manga_set = links
+            first = False
+        else:
+            links.difference_update(manga_set)
+            for book in links:
+                data = await must_get_request("https://api.fakku.net/manga/"+book, cookies=cookies)
+                book_json = data.json()['content']
+                m = manga(book_json)
+                m.populate()
+                
+                html = await get_html(book_json['content_url'])  # gets the manga page
+                if html is not None:
+                    soup = BeautifulSoup(html, 'html.parser')  # start up html parser
+                    store_link = await detect_store_link(soup)  # see if the store link exists
+                    m.set_store_link(store_link)  # set store link
+                    magazine_text = await detect_magazine_text(soup)  # see if the magazine link exists
+                    m.set_magazine_text(magazine_text)  # set magazine link
 
-                        html = await get_html(s['content_url'])  # gets the manga page
-                        if html is not None:
-                            soup = BeautifulSoup(html, 'html.parser')  # start up html parser
-                            store_link = await detect_store_link(soup)  # see if the store link exists
-                            m.set_store_link(store_link)  # set store link
-                            magazine_text = await detect_magazine_text(soup)  # see if the magazine link exists
-                            m.set_magazine_text(magazine_text)  # set magazine link
+                print("New Release!")
+                release_string = await manga_string(m, 'New Release! \n')
+                await bot.send_message(bot.get_channel('196487186860867584'), release_string)  # send release details into the channel
+                await bot.send_message(bot.get_channel('202830118324928512'), release_string)
+                
+            manga_set.update(links)
+        await asyncio.sleep(60)
 
-                        print("New Release!")
-                        release_string = await manga_string(m, 'New Release! \n')
-                        await bot.send_message(bot.get_channel('196487186860867584'),
-                                               release_string)  # send release details into the channel
-                        await bot.send_message(bot.get_channel('202830118324928512'), release_string)
-                except KeyError:  # forum posts will cause this
-                    pass
-        most_recent = most_recent_x
-        await asyncio.sleep(60)  # Sleep for 60seconds
-
-
-
+    
 bot.loop.set_debug(True)
 bot.loop.create_task(fakku_script())
 bot.run(password.Token) # Put your own discord token here
