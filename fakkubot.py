@@ -62,7 +62,7 @@ async def clap(*message):
     await bot.say(a)
     
     
-@bot.command(descriptoin="charge me daddy")
+@bot.command(description="charge me daddy")
 async def charge():
     await bot.say(":regional_indicator_c: :regional_indicator_h: :regional_indicator_a: :regional_indicator_r: :regional_indicator_g: :regional_indicator_e:  :regional_indicator_m: :regional_indicator_e:  :regional_indicator_d: :regional_indicator_a: :regional_indicator_d: :regional_indicator_d: :regional_indicator_y:!")
     
@@ -157,13 +157,17 @@ async def strawpoll(*message : str):
     options = list()
     
     data['title'] = a[0]
-    if a[1].lower() in multi:
-        data['multi'] = a[1].lower()    
-    if a[2].lower() in dupe:
-        data['dupcheck'] = a[2].lower()
-        
-    for question in a[3:]:
+    option_offset = 1
+    if len(a) > 4:
+        if a[1].lower() in multi:
+            data['multi'] = a[1].lower()    
+        if a[2].lower() in dupe:
+            data['dupcheck'] = a[2].lower()
+        option_offset = 3
+            
+    for question in a[option_offset:]:
         options.append(question)
+         
     data['options'] = options
     
     headers = {'Content-type': "application/json"}
