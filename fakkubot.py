@@ -137,9 +137,43 @@ async def text(*message : str):
 @bot.command(description="its that time")
 async def itsthattime():
     await bot.say('https://www.youtube.com/watch?v=shCYA2J-De8')
-    
+
 async def detect_http(url):
     return re.match(p, url)  # regex search for http or https is at the start of url
+
+
+
+@bot.command(description="Create a strawpoll!")
+async def strawpoll(*message : str):
+    a = " ".join(message)
+    print(a)
+    a = a.split(",")
+    print(a)
+    a = list(map(str.strip, a))
+    print(a)
+    multi = ["true", "false"]
+    dupe = ["normal", "permissive", "disabled"]
+    data = {"multi": "false", "dupcheck": "normal"}
+    options = list()
+    
+    data['title'] = a[0]
+    if a[1].lower() in multi:
+        data['multi'] = a[1].lower()    
+    if a[2].lower() in dupe:
+        data['dupcheck'] = a[2].lower()
+        
+    for question in a[3:]:
+        options.append(question)
+    data['options'] = options
+    
+    headers = {'Content-type': "application/json"}
+    r = await post_request('https://strawpoll.me/api/v2/polls', json.dumps(data), headers)
+    if r.status_code == 200:
+        result = r.json()
+        await bot.say("https://www.strawpoll.me/" + str(result['id']))
+    else:
+        await bot.say(r.json())    
+    
 
 
 async def get_json(url,cookies=None):
@@ -174,7 +208,13 @@ async def must_get_request(url,cookies=None):
         except:
             print('http error!')
             await asyncio.sleep(60)  # sleep to not grab a dead link over and over
-            
+
+
+
+async def post_request(url, data=None, headers=None):
+    r = requests.post(url, data=data, headers=headers)
+    return r
+    
 async def detect_store_link(soup):
     if soup is not None:
         a = soup.findAll('a', class_="button green")  # Find green button class
@@ -201,20 +241,22 @@ async def detect_magazine_text(soup):
 
 
 async def manga_string(m, release=''):
-    if m.content_artists is not None:
-        artists = ", ".join(m.content_artists)
         
     release += 'Name: ' + \
                m.content_name
     
     if m.content_artists is not None:
+        artists = ", ".join(m.content_artists)
         release += '\nArtists: ' + artists
+        
     if m.magazine_text is not None:
         release += '\nMagazine: ' + m.magazine_text
 
-    tags = ", ".join(m.content_tags)
-    
-    release += '\nTags: ' + tags + '\n' + m.content_url
+    if m.content_tags is not None:
+        tags = ", ".join(m.content_tags)
+        release += '\nTags: ' + tags
+
+    release += '\n' + m.content_url
 
     if m.store_link is not None:
         release += '\nBuy it here at: ' + m.store_link

@@ -32,7 +32,11 @@ class manga:
         except KeyError:
             self.content_artists = None
         
-        self.populate_tags(self.content['content_tags'], len(self.content['content_tags']))
+        try:
+            self.populate_tags(self.content['content_tags'], len(self.content['content_tags']))
+        except KeyError:
+            self.content_tags = None
+        
 
     def set_store_link(self, link):
         self.store_link = link
