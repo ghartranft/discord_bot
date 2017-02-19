@@ -46,7 +46,7 @@ async def bork(limit=50):
         await bot.say(url)
     else:
         await bot.say('Could not receive reddit json')
-        
+
 @bot.command(description='How do I shot web?')
 async def shotweb():
     await bot.say("How do I shot web? \n https://cdn.drawception.com/images/panels/2012/6-14/GGFpZEHKLY-2.png")
@@ -60,18 +60,18 @@ async def joygun():
 async def clap(*message):
     a = " :clap: ".join(message)
     await bot.say(a)
-    
-    
+
+
 @bot.command(description="charge me daddy")
 async def charge():
     await bot.say(":regional_indicator_c: :regional_indicator_h: :regional_indicator_a: :regional_indicator_r: :regional_indicator_g: :regional_indicator_e:  :regional_indicator_m: :regional_indicator_e:  :regional_indicator_d: :regional_indicator_a: :regional_indicator_d: :regional_indicator_d: :regional_indicator_y:!")
-    
+
 @bot.command(description="checkem")
 async def roll(start=0, limit=100):
     num = random.randint(start, limit)
     string = ':' + str(num) + ':'
     await bot.say(string)
-    
+
 @bot.command(description='Check if a website is online. Default=https://www.fakku.net/')
 async def up(url="https://www.fakku.net/"):
     if await detect_http(url) is None:  # detects if the front of the url contains http:// or https://
@@ -133,7 +133,7 @@ async def text(*message : str):
             string +=  append
         string += "   "
     await bot.say(string)
-    
+
 @bot.command(description="its that time")
 async def itsthattime():
     await bot.say('https://www.youtube.com/watch?v=shCYA2J-De8')
@@ -155,29 +155,29 @@ async def strawpoll(*message : str):
     dupe = ["normal", "permissive", "disabled"]
     data = {"multi": "false", "dupcheck": "normal"}
     options = list()
-    
+
     data['title'] = a[0]
     option_offset = 1
     if len(a) > 4:
         if a[1].lower() in multi:
-            data['multi'] = a[1].lower()    
+            data['multi'] = a[1].lower()
         if a[2].lower() in dupe:
             data['dupcheck'] = a[2].lower()
         option_offset = 3
-            
+
     for question in a[option_offset:]:
         options.append(question)
-         
+
     data['options'] = options
-    
+
     headers = {'Content-type': "application/json"}
     r = await post_request('https://strawpoll.me/api/v2/polls', json.dumps(data), headers)
     if r.status_code == 200:
         result = r.json()
         await bot.say("https://www.strawpoll.me/" + str(result['id']))
     else:
-        await bot.say(r.json())    
-    
+        await bot.say(r.json())
+
 
 
 async def get_json(url,cookies=None):
@@ -218,7 +218,7 @@ async def must_get_request(url,cookies=None):
 async def post_request(url, data=None, headers=None):
     r = requests.post(url, data=data, headers=headers)
     return r
-    
+
 async def detect_store_link(soup):
     if soup is not None:
         a = soup.findAll('a', class_="button green")  # Find green button class
@@ -245,14 +245,14 @@ async def detect_magazine_text(soup):
 
 
 async def manga_string(m, release=''):
-        
+
     release += 'Name: ' + \
                m.content_name
-    
+
     if m.content_artists is not None:
         artists = ", ".join(m.content_artists)
         release += '\nArtists: ' + artists
-        
+
     if m.magazine_text is not None:
         release += '\nMagazine: ' + m.magazine_text
 
@@ -280,7 +280,7 @@ I want this to crash if it fails
 async def login(username, password):
     r = requests.post('https://www.fakku.net/login/submit', data = {'username':username,'password':password})
     return r
-    
+
 async def get_front_page_links(soup):
     items = soup.findAll('a', class_='content-title')
     links = set()
@@ -288,13 +288,13 @@ async def get_front_page_links(soup):
         link = manga['href'][8:]
         links.add(link)
     return links
-            
+
 async def fakku_script():
     await bot.wait_until_ready()  # will not begin until the bot is logged in.
     manga_set = set()
     first = True
     r  = await login(password.username, password.password)
-    cookies = r.cookies  
+    cookies = r.cookies
     while True:
         r = await must_get_request('https://fakku.net', cookies=cookies)
         soup = BeautifulSoup(r.text, 'html.parser')
@@ -309,7 +309,7 @@ async def fakku_script():
                 book_json = data.json()['content']
                 m = manga(book_json)
                 m.populate()
-                
+
                 html = await get_html(book_json['content_url'])  # gets the manga page
                 if html is not None:
                     soup = BeautifulSoup(html, 'html.parser')  # start up html parser
@@ -322,11 +322,11 @@ async def fakku_script():
                 release_string = await manga_string(m, 'New Release! \n')
                 await bot.send_message(bot.get_channel('196487186860867584'), release_string)  # send release details into the channel
                 await bot.send_message(bot.get_channel('202830118324928512'), release_string)
-                
+
             manga_set.update(links)
         await asyncio.sleep(60)
 
-    
+
 bot.loop.set_debug(True)
 bot.loop.create_task(fakku_script())
 bot.run(password.Token) # Put your own discord token here
