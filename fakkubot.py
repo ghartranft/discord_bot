@@ -6,9 +6,14 @@ import re
 from bs4 import BeautifulSoup
 from discord.ext import commands
 import random
-from Manga import manga
 import password
 import requests
+import os.path
+import pickle
+from Manga import manga
+import sys
+from datetime import datetime
+import bisect
 
 # All functions are async so we can interrupt them at any time and resume another
 
@@ -23,7 +28,7 @@ async def on_member_join(member):
     if server.id == '222895741918511105':
         fmt = 'Welcome {0.mention} to {1.name}!'
         await bot.send_message(server, fmt.format(member, server))
-
+'''
 @bot.command(description='Get a random post from r/blackpeopletwitter')
 async def bpt(limit=100):
     data = await get_json('https://www.reddit.com/r/blackpeopletwitter.json?limit=' + str(limit))
@@ -34,8 +39,8 @@ async def bpt(limit=100):
         await bot.say(url)
     else:
         await bot.say('Could not receive reddit json')
-
-
+'''
+'''
 @bot.command(description='Get a random post from r/woof_irl')
 async def bork(limit=50):
     data = await get_json('https://www.reddit.com/r/woof_irl.json?limit=' + str(limit))
@@ -46,7 +51,7 @@ async def bork(limit=50):
         await bot.say(url)
     else:
         await bot.say('Could not receive reddit json')
-
+'''
 @bot.command(description='How do I shot web?')
 async def shotweb():
     await bot.say("How do I shot web? \n https://cdn.drawception.com/images/panels/2012/6-14/GGFpZEHKLY-2.png")
@@ -71,7 +76,7 @@ async def roll(start=0, limit=100):
     num = random.randint(start, limit)
     string = ':' + str(num) + ':'
     await bot.say(string)
-
+'''
 @bot.command(description='Check if a website is online. Default=https://www.fakku.net/')
 async def up(url="https://www.fakku.net/"):
     if await detect_http(url) is None:  # detects if the front of the url contains http:// or https://
@@ -86,44 +91,9 @@ async def up(url="https://www.fakku.net/"):
         await bot.say(url + " is an invalid url or not up!")
     except urllib.error.HTTPError:  # This may never happen but just in case
         await bot.say(url + " looks down from here! (USA East Coast)")
+'''
 
-
-@bot.command(description='Get a random manga from fakku.net')
-async def rand():
-    data = await get_html('https://www.fakku.net/hentai/newest')
-    if data is not None:
-        soup = BeautifulSoup(data, 'html.parser')
-        item = soup.find('div', class_='links')
-        num = item.text[11:]
-        n = int(num)
-        print(n)
-        n = random.randint(1, n-1)
-        data = await get_html('https://www.fakku.net/hentai/newest/page/' + str(n))
-        if data is not None:
-            soup = BeautifulSoup(data, 'html.parser')
-            items = soup.findAll('a', class_='content-title')
-            n = random.randint(0, len(items)-1)
-            print(items[n]['href'][8:])
-            link = items[n]['href'][8:]
-            data = await get_json('https://api.fakku.net/manga/' + link)
-            if data is not None:
-                data = data['content']
-                m = manga(data)
-                m.populate()  # populate the object with manga details, author, tags, etc
-
-                html = await get_html(data['content_url'])
-                if html is not None:
-                    soup = BeautifulSoup(html, 'html.parser')
-                    store_link = await detect_store_link(soup)
-                    m.set_store_link(store_link)
-                    magazine_text = await detect_magazine_text(soup)
-                    m.set_magazine_text(magazine_text)
-                r = await manga_string(m, 'Random Manga! \n')
-                await bot.say(r)
-
-    if data is None:
-        print("Error. Is fakku up?")
-
+"""
 @bot.command(description=":regional_indicator_")
 async def text(*message : str):
     string = ""
@@ -133,6 +103,7 @@ async def text(*message : str):
             string +=  append
         string += "   "
     await bot.say(string)
+"""
 
 @bot.command(description="its that time")
 async def itsthattime():
@@ -142,7 +113,14 @@ async def detect_http(url):
     return re.match(p, url)  # regex search for http or https is at the start of url
 
 
-
+@bot.command(description="Heads or Tails")
+async def coinflip():
+    a = random.randint(0,1)
+    str = "Tails"
+    if a:
+        str = "Heads"
+    await bot.say(str)
+    
 @bot.command(description="Create a strawpoll!")
 async def strawpoll(*message : str):
     a = " ".join(message)
@@ -158,13 +136,14 @@ async def strawpoll(*message : str):
 
     data['title'] = a[0]
     option_offset = 1
+    '''
     if len(a) > 4:
         if a[1].lower() in multi:
             data['multi'] = a[1].lower()
         if a[2].lower() in dupe:
             data['dupcheck'] = a[2].lower()
         option_offset = 3
-
+    '''
     for question in a[option_offset:]:
         options.append(question)
 
@@ -219,53 +198,6 @@ async def post_request(url, data=None, headers=None):
     r = requests.post(url, data=data, headers=headers)
     return r
 
-async def detect_store_link(soup):
-    if soup is not None:
-        a = soup.findAll('a', class_="button green")  # Find green button class
-
-        for x in range(0, len(a)):  # loop through multiple green buttons
-            try:
-                link = a[x]['href']  # Find green button with a link
-                if link.find('store.fakku.net') != -1:  # Make sure that link contains a store link
-                    return link  # return store link
-            except:
-                pass  # 'href' access wont work if it doesn't exist
-    return None  # return nothing if store link does not exist
-
-
-async def detect_magazine_text(soup):
-    if soup is not None:
-        try:
-            a = soup.find('div', class_="left", text='Magazine')  # Find Magazine box
-            text = a.next_sibling.next_sibling.text  # if it exists then we get a value, otherwise None
-            return text
-        except:
-            pass
-    return None
-
-
-async def manga_string(m, release=''):
-
-    release += 'Name: ' + \
-               m.content_name
-
-    if m.content_artists is not None:
-        artists = ", ".join(m.content_artists)
-        release += '\nArtists: ' + artists
-
-    if m.magazine_text is not None:
-        release += '\nMagazine: ' + m.magazine_text
-
-    if m.content_tags is not None:
-        tags = ", ".join(m.content_tags)
-        release += '\nTags: ' + tags
-
-    release += '\n' + m.content_url
-
-    if m.store_link is not None:
-        release += '\nBuy it here at: ' + m.store_link
-    return release
-
 
 async def on_ready():
     print('Logged in as')
@@ -274,59 +206,170 @@ async def on_ready():
     print('------')
 
 
-'''
-I want this to crash if it fails
-'''
-async def login(username, password):
-    r = requests.post('https://www.fakku.net/login/submit', data = {'username':username,'password':password})
-    return r
+@bot.event
+async def on_member_join(member):
+    server = member.server
+    if server.id == '222895741918511105':
+        fmt = 'Welcome {0.mention} to {1.name}!'
+        await bot.send_message(server, fmt.format(member, server))
 
-async def get_front_page_links(soup):
-    items = soup.findAll('a', class_='content-title')
-    links = set()
-    for manga in items:
-        link = manga['href'][8:]
-        links.add(link)
-    return links
+    if server.id in join_messages:
+        msgs = join_messages[server.id]
+        for k,v in msgs.items():
+            if type(k) == int:
+                await bot.send_message(member, v)
 
-async def fakku_script():
-    await bot.wait_until_ready()  # will not begin until the bot is logged in.
-    manga_set = set()
-    first = True
-    r  = await login(password.username, password.password)
-    cookies = r.cookies
+@bot.command(pass_context=True, no_pm=True)
+async def add_join_message(ctx):
+
+    permission = False
+    for x in ctx.message.author.roles:
+        if x.permissions.manage_channels:
+            permission = True
+
+    if permission:
+        await bot.say("Command accepted")
+        msgs = join_messages.get(ctx.message.author.server.id, {})
+        if not msgs:
+            msgs['max'] = 0
+            join_messages[ctx.message.author.server.id] = msgs
+        num = msgs['max']
+        num += 1
+        msgs['max'] = num
+        msgs[num] = ctx.message.content[18:]
+        join_messages['change'] = True
+    else:
+        await bot.say("You don't have permission to use this command")
+
+@bot.command(pass_context=True, no_pm=True)
+async def check_join_messages(ctx):
+    permission = False
+    for x in ctx.message.author.roles:
+        if x.permissions.manage_channels:
+            permission = True
+    if permission:
+        msgs = join_messages.get(ctx.message.author.server.id, {})
+        for k,v in msgs.items():
+            if type(k) == int:
+                await bot.say("Displaying message " + str(k))
+                await bot.say(v)
+        await bot.say("Finished displaying messages")
+    else:
+        await bot.say("You don't have permission to use this command")
+
+@bot.command(pass_context=True, no_pm=True)
+async def delete_join_message(ctx, number : int):
+    permission = False
+    for x in ctx.message.author.roles:
+        if x.permissions.manage_channels:
+            permission = True
+    if permission:
+        msgs = join_messages.get(ctx.message.author.server.id, {})
+        try:
+            del msgs[number]
+            await bot.say("The command " + str(number) + " has been deleted.")
+            join_messages['change'] = True
+        except KeyError:
+            await bot.say("The command " + str(number) + " does not exist.")
+    else:
+        await bot.say("You don't have permission to use this command")
+
+async def save_join_messages_forver(path="D:\stuff\BotData"):
     while True:
-        r = await must_get_request('https://fakku.net', cookies=cookies)
-        soup = BeautifulSoup(r.text, 'html.parser')
-        links = await get_front_page_links(soup)
-        if first == True:
-            manga_set = links
-            first = False
-        else:
-            links.difference_update(manga_set)
-            for book in links:
-                data = await must_get_request("https://api.fakku.net/manga/"+book, cookies=cookies)
-                book_json = data.json()['content']
-                m = manga(book_json)
-                m.populate()
-
-                html = await get_html(book_json['content_url'])  # gets the manga page
-                if html is not None:
-                    soup = BeautifulSoup(html, 'html.parser')  # start up html parser
-                    store_link = await detect_store_link(soup)  # see if the store link exists
-                    m.set_store_link(store_link)  # set store link
-                    magazine_text = await detect_magazine_text(soup)  # see if the magazine link exists
-                    m.set_magazine_text(magazine_text)  # set magazine link
-
-                print("New Release!")
-                release_string = await manga_string(m, 'New Release! \n')
-                await bot.send_message(bot.get_channel('196487186860867584'), release_string)  # send release details into the channel
-                await bot.send_message(bot.get_channel('202830118324928512'), release_string)
-
-            manga_set.update(links)
+        if join_messages['change']:
+            join_messages['change'] = False
+            await save_data(join_messages, path)
+            print("join_messages Saved!")
         await asyncio.sleep(60)
+
+async def save_data_forever(data, path, time):
+    while True:
+        await asyncio.sleep(time)
+        await save_data(data, path)
+        
+        
+async def save_data(data, path):
+        f = open(path, "wb+")
+        pickle.dump(data, f)
+        f.close()
+        print(path + " Saved!")
+        
+@bot.command(pass_context=True)
+async def backup(ctx):
+    if ctx.message.author.id == '48163936855392256':
+        await save_data(join_messages, "D:\stuff\BotData")
+        await save_data(join_messages, "D:\stuff\BotEndBackUp")
+        await save_data(exp_users, "D:\stuff\BotExpUsers")
+        await save_data(exp_users, "D:\stuff\BotExpUsersBackUp")
+    else:
+        print("Someone is trying to use the backup command")
+
+@bot.command(pass_context=True)
+async def done(ctx):
+    if ctx.message.author.id == '48163936855392256':
+        await save_data(join_messages, "D:\stuff\BotData")
+        await save_data(join_messages, "D:\stuff\BotEndBackUp")
+        await save_data(exp_users, "D:\stuff\BotExpUsers")
+        await save_data(exp_users, "D:\stuff\BotExpUsersBackUp")
+        sys.exit()
+    else:
+        print("Someone is trying to use the done command")
+
+def get_data_from_file(path, default):
+    a = os.path.exists(path)
+    if a:
+        f = open(path, "rb+")
+        data = pickle.load(f)
+        f.close()
+    else:
+        data = default
+    return data
+
+'''
+breakpoints = [300, 600, 1200, 5000, 10000]
+exp_curve = [60, 60, 60, 380, 500, 500]
+level_chart = [60, 120, 180, 240, 300, 360, 420, 480, 540, 600, 660, 720, 780, 840, 900, 960, 1020, 1080, 1140, 1200, 1260, 1640, 2020, 2400, 2780, 3160, 3540, 3920, 4300, 4680, 5000, 5560, 6060, 6560, 7060, 7560, 8060, 8560, 9060, 9560, 10000, 10560, 11060, 11560, 12060, 12560, 13060, 13560, 14060, 14560, 15060]
+'''
+breakpoints = [300, 600, 3000, 6000, 11000, 15860]
+exp_curve = [60, 60, 240, 300, 500, 600, 1414]
+level_chart = [60, 120, 180, 240, 300, 360, 420, 480, 540, 600, 660, 900, 1140, 1380, 1620, 1860, 2100, 2340, 2580, 2820, 3060, 3360, 3660, 3960, 4260, 4560, 4860, 5160, 5460, 5760, 6060, 6560, 7060, 7560, 8060, 8560, 9060, 9560, 10060, 10560, 11060, 11660, 12260, 12860, 13460, 14060, 14660, 15260, 15860, 17274, 18688, 20102, 21516, 22930, 24344, 25758, 27172, 28586, 30000]
+exp_gain = 15
+ranks = ['Normie', 'Kogal', 'Office Lady', "High Schooler", "Loli", "Succubus", 'Tentacle Beast']
+
+
+class user_exp():
+    def __init__(self):
+        self.exp = 0
+        self.time = datetime.now()
+    
+@bot.event
+async def on_message(message):
+    if message.server is not None:
+        id = exp_users.get(message.author.id, user_exp())
+        delta = datetime.now() - id.time
+        if delta.seconds > 30:
+            id.exp += exp_gain
+            id.time = datetime.now()
+        
+        exp_users[message.author.id] = id 
+    
+    await bot.process_commands(message)
+
+@bot.command(pass_context=True, no_pm=True)
+async def rank(ctx):
+    id = exp_users.get(ctx.message.author.id, None)
+    if id is not None:
+        i = bisect.bisect_left(breakpoints, id.exp)
+        rank = ranks[i]
+        level = bisect.bisect_left(level_chart, id.exp) + 1
+        name = ctx.message.author.name
+        fmt = "{0}: You are level {1} with {2.exp} exp. You have achieved the rank of {3}"
+        await bot.say(fmt.format(name, level, id, rank))
 
 
 bot.loop.set_debug(True)
-bot.loop.create_task(fakku_script())
+join_messages = get_data_from_file("D:\stuff\BotData", {"change": False})
+exp_users = get_data_from_file("D:\stuff\BotExpUsers", dict())
+bot.loop.create_task(save_join_messages_forver())
+bot.loop.create_task(save_data_forever(exp_users, "D:\stuff\BotExpUsers", 60*5))
 bot.run(password.Token) # Put your own discord token here
