@@ -14,6 +14,7 @@ from Manga import manga
 import sys
 from datetime import datetime
 import bisect
+import mysql.connector
 
 # All functions are async so we can interrupt them at any time and resume another
 
@@ -213,31 +214,32 @@ async def on_member_join(member):
         fmt = 'Welcome {0.mention} to {1.name}!'
         await bot.send_message(server, fmt.format(member, server))
 
-    if server.id in join_messages:
-        msgs = join_messages[server.id]
-        for k,v in msgs.items():
-            if type(k) == int:
-                await bot.send_message(member, v)
-
+    cursor = await get_join_messages(server.id)
+    for id, Message in cursor:
+        await bot.send_message(member, Message)
+    cursor.close()
+    
 @bot.command(pass_context=True, no_pm=True)
 async def add_join_message(ctx):
-
+ ##  msgs[num] = ctx.message.content[18:]
     permission = False
     for x in ctx.message.author.roles:
         if x.permissions.manage_channels:
             permission = True
-
+       
+        
     if permission:
-        await bot.say("Command accepted")
-        msgs = join_messages.get(ctx.message.author.server.id, {})
-        if not msgs:
-            msgs['max'] = 0
-            join_messages[ctx.message.author.server.id] = msgs
-        num = msgs['max']
-        num += 1
-        msgs['max'] = num
-        msgs[num] = ctx.message.content[18:]
-        join_messages['change'] = True
+        try:
+            msg = ctx.message.content[18:]
+            cursor = cnx.cursor(buffered=True)
+            statement = "Insert into joinMessages(Message, ServerID) VALUES(%s,%s)"
+            values = (msg, ctx.message.author.server.id)
+            cursor.execute(statement, values)
+            cursor.execute('commit')
+            cursor.close()
+            await bot.say("Command accepted")
+        except Exception:
+            await bot.say("Something went wrong! Try again or alert Sindalf")
     else:
         await bot.say("You don't have permission to use this command")
 
@@ -247,13 +249,19 @@ async def check_join_messages(ctx):
     for x in ctx.message.author.roles:
         if x.permissions.manage_channels:
             permission = True
+            
     if permission:
-        msgs = join_messages.get(ctx.message.author.server.id, {})
-        for k,v in msgs.items():
-            if type(k) == int:
-                await bot.say("Displaying message " + str(k))
-                await bot.say(v)
-        await bot.say("Finished displaying messages")
+        try:
+            cursor = await get_join_messages(ctx.message.author.server.id)
+            
+            for id, Message in cursor:
+                await bot.say("Message id: " + str(id))
+                await bot.say(Message)
+                
+            cursor.close()
+            await bot.say("Finished displaying messages")
+        except Exception:
+            await bot.say("Something went wrong! Try again or alert Sindalf")
     else:
         await bot.say("You don't have permission to use this command")
 
@@ -263,58 +271,25 @@ async def delete_join_message(ctx, number : int):
     for x in ctx.message.author.roles:
         if x.permissions.manage_channels:
             permission = True
+            
     if permission:
-        msgs = join_messages.get(ctx.message.author.server.id, {})
         try:
-            del msgs[number]
-            await bot.say("The command " + str(number) + " has been deleted.")
-            join_messages['change'] = True
-        except KeyError:
-            await bot.say("The command " + str(number) + " does not exist.")
+            await delete_db_join_message(number, ctx.message.author.server.id)
+            await bot.say("Message deleted")
+        except Exception:
+            await bot.say("Something went wrong! Try again or alert Sindalf")
     else:
         await bot.say("You don't have permission to use this command")
-
-async def save_join_messages_forver(path="D:\stuff\BotData"):
-    while True:
-        if join_messages['change']:
-            join_messages['change'] = False
-            await save_data(join_messages, path)
-            print("join_messages Saved!")
-        await asyncio.sleep(60)
-
-async def save_data_forever(data, path, time):
-    while True:
-        await asyncio.sleep(time)
-        await save_data(data, path)
         
-        
-async def save_data(data, path):
-        f = open(path, "wb+")
-        pickle.dump(data, f)
-        f.close()
-        print(path + " Saved!")
-        
-@bot.command(pass_context=True)
-async def backup(ctx):
-    if ctx.message.author.id == '48163936855392256':
-        await save_data(join_messages, "D:\stuff\BotData")
-        await save_data(join_messages, "D:\stuff\BotEndBackUp")
-        await save_data(exp_users, "D:\stuff\BotExpUsers")
-        await save_data(exp_users, "D:\stuff\BotExpUsersBackUp")
-    else:
-        print("Someone is trying to use the backup command")
 
 @bot.command(pass_context=True)
 async def done(ctx):
     if ctx.message.author.id == '48163936855392256':
-        await save_data(join_messages, "D:\stuff\BotData")
-        await save_data(join_messages, "D:\stuff\BotEndBackUp")
-        await save_data(exp_users, "D:\stuff\BotExpUsers")
-        await save_data(exp_users, "D:\stuff\BotExpUsersBackUp")
         sys.exit()
     else:
         print("Someone is trying to use the done command")
 
+'''
 def get_data_from_file(path, default):
     a = os.path.exists(path)
     if a:
@@ -324,52 +299,80 @@ def get_data_from_file(path, default):
     else:
         data = default
     return data
-
-'''
-breakpoints = [300, 600, 1200, 5000, 10000]
-exp_curve = [60, 60, 60, 380, 500, 500]
-level_chart = [60, 120, 180, 240, 300, 360, 420, 480, 540, 600, 660, 720, 780, 840, 900, 960, 1020, 1080, 1140, 1200, 1260, 1640, 2020, 2400, 2780, 3160, 3540, 3920, 4300, 4680, 5000, 5560, 6060, 6560, 7060, 7560, 8060, 8560, 9060, 9560, 10000, 10560, 11060, 11560, 12060, 12560, 13060, 13560, 14060, 14560, 15060]
 '''
 breakpoints = [300, 600, 3000, 6000, 11000, 15860]
 exp_curve = [60, 60, 240, 300, 500, 600, 1414]
 level_chart = [60, 120, 180, 240, 300, 360, 420, 480, 540, 600, 660, 900, 1140, 1380, 1620, 1860, 2100, 2340, 2580, 2820, 3060, 3360, 3660, 3960, 4260, 4560, 4860, 5160, 5460, 5760, 6060, 6560, 7060, 7560, 8060, 8560, 9060, 9560, 10060, 10560, 11060, 11660, 12260, 12860, 13460, 14060, 14660, 15260, 15860, 17274, 18688, 20102, 21516, 22930, 24344, 25758, 27172, 28586, 30000]
-exp_gain = 15
+exp_gain = 7
 ranks = ['Normie', 'Kogal', 'Office Lady', "High Schooler", "Loli", "Succubus", 'Tentacle Beast']
 
 
 class user_exp():
     def __init__(self):
-        self.exp = 0
         self.time = datetime.now()
     
 @bot.event
 async def on_message(message):
     if message.server is not None:
-        id = exp_users.get(message.author.id, user_exp())
-        delta = datetime.now() - id.time
-        if delta.seconds > 30:
-            id.exp += exp_gain
-            id.time = datetime.now()
-        
-        exp_users[message.author.id] = id 
+        id = message.author.id
+        user_time = exp_users.get(id, None)
+        if user_time is None:
+            await Increment(id) ## adds to database if DNE
+            user_time = user_exp()
+        else:
+            date = datetime.now() 
+            delta = date - user_time.time
+            if delta.seconds > 30:
+                user_time.time = date
+                await Increment(id)
+                
+        exp_users[id] = user_time 
     
     await bot.process_commands(message)
 
+async def delete_db_join_message(id, server_id):
+    query = ("Delete from joinMessages where id = %s and ServerID = %s")
+    values = (id, server_id)
+    cursor = cnx.cursor(buffered=True)
+    cursor.execute(query, values)
+    cursor.execute("commit")
+    cursor.close()
+    
+async def get_join_messages(server_id):
+    cursor = cnx.cursor(buffered=True)
+    query = ("Select id, Message from joinMessages where ServerID = %s")
+    cursor.execute(query, (server_id,))
+    return cursor
+    
+async def Increment(id):
+    cursor = cnx.cursor(buffered=True)
+    args = (id,)
+    cursor.callproc('Increment', args)
+    cursor.execute('commit')
+    cursor.close()
+    
+async def getEXP(id):
+    cursor = cnx.cursor(buffered=True)
+    args = (id,0)
+    result = cursor.callproc('getEXP', args)
+    cursor.close()
+    return result[1]
+    
 @bot.command(pass_context=True, no_pm=True)
 async def rank(ctx):
-    id = exp_users.get(ctx.message.author.id, None)
-    if id is not None:
-        i = bisect.bisect_left(breakpoints, id.exp)
+    id = ctx.message.author.id
+    exp = await getEXP(id)
+    if exp is not None:
+        i = bisect.bisect_left(breakpoints, exp)
         rank = ranks[i]
-        level = bisect.bisect_left(level_chart, id.exp) + 1
+        level = bisect.bisect_left(level_chart, exp) + 1
         name = ctx.message.author.name
-        fmt = "{0}: You are level {1} with {2.exp} exp. You have achieved the rank of {3}"
-        await bot.say(fmt.format(name, level, id, rank))
+        fmt = "{0}: You are level {1} with {2} exp. You have achieved the rank of {3}"
+        await bot.say(fmt.format(name, level, exp, rank))
 
 
+print("Connecting to database")
+cnx = mysql.connector.connect(user=password.MySQL_User, password=password.MySQL_Pass, host=password.MySQL_Host, database=password.MySQL_DB)
+exp_users = dict()
 bot.loop.set_debug(True)
-join_messages = get_data_from_file("D:\stuff\BotData", {"change": False})
-exp_users = get_data_from_file("D:\stuff\BotExpUsers", dict())
-bot.loop.create_task(save_join_messages_forver())
-bot.loop.create_task(save_data_forever(exp_users, "D:\stuff\BotExpUsers", 60*5))
 bot.run(password.Token) # Put your own discord token here
