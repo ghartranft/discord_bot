@@ -169,7 +169,7 @@ async def fakku_script():
                     for ID in cursor:
                         a = {
                             'username': None,
-                            'id': str(ID),
+                            'id': str(ID[0]),
                             'discriminator': None,
                             'avatar': None,
                             'bot': False
