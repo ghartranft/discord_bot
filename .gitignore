@@ -89,3 +89,4 @@ ENV/
 .ropeproject
 password.py
 testBot.py
+test.py

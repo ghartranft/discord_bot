@@ -5,6 +5,7 @@ import urllib.request
 import re
 from bs4 import BeautifulSoup
 from discord.ext import commands
+import discord
 import random
 import password
 import requests
@@ -144,7 +145,9 @@ async def fakku_script():
             first = False
         else:
             links.difference_update(manga_set)
+            i = 0
             for book in links:
+                i += 1
                 data = await must_get_request("https://api.fakku.net/manga/"+book, cookies=cookies.cookies)
                 book_json = data.json()['content']
                 m = manga(book_json)
@@ -164,9 +167,8 @@ async def fakku_script():
                 await bot.send_message(bot.get_channel('202830118324928512'), release_string)
                 
                 try:
-                    cursor = await get_notified_users()
-                    
-                    for ID in cursor:
+                    data = await get_notified_users()
+                    for ID in data:
                         a = {
                             'username': None,
                             'id': str(ID[0]),
@@ -174,46 +176,62 @@ async def fakku_script():
                             'avatar': None,
                             'bot': False
                             }
-                        user = discord.User(**a)
-                    try:
-                        await bot.send_message(user, release_string)
-                    except Exception:
-                        pass
-                    cursor.close()
+                        print(str(ID[0]))
+                        try:
+                            user = discord.User(**a)
+                            await bot.send_message(user, release_string)
+                        except Exception:
+                            print("Sending failed!")
                 except Exception:
-                    pass
+                    print("Something went wrong with the sql statement!")
+            if i > 0:
+                msg = "Type !notify_me for PM notifications whenever a new release on FAKKU! goes up."
+                await bot.send_message(bot.get_channel('196487186860867584'), msg)  # send release details into the channel
+                await bot.send_message(bot.get_channel('202830118324928512'), msg)
+            i = 0
             manga_set.update(links)
         await asyncio.sleep(60)
 
 async def get_notified_users():
-    cursor = cnx.cursor()
+    cnx = mysql.connector.connect(user=password.MySQL_User, password=password.MySQL_Pass,host=password.MySQL_Host, database=password.MySQL_DB)
+    cursor = cnx.cursor(buffered=True)
     query = "Select ID from releaseNotify"
     cursor.execute(query)
-    return cursor
+    data = set(cursor)
+    cursor.close()    
+    cnx.close()
+    return data
     
 
 @bot.command(pass_context=True, description="Use this command to receive PMs for FAKKU! releases")
 async def notify_me(ctx):
+    cnx = mysql.connector.connect(user=password.MySQL_User, password=password.MySQL_Pass,host=password.MySQL_Host, database=password.MySQL_DB)
     query = "Insert into releaseNotify (ID) VALUES(%s)"
     values = (ctx.message.author.id,)
-    cursor = cnx.cursor()
-    cursor.execute(query, values)
-    cursor.execute('commit')
-    cursor.close()
-    await bot.send_message(ctx.message.author, "You will now be notified when new manga goes up on FAKKU!")
+    cursor = cnx.cursor(buffered=True)
+    try:
+        cursor.execute(query, values)
+        cursor.execute('commit')
+    except Exception:
+        pass
+    finally:
+        cursor.close()
+        cnx.close()
+    await bot.send_message(ctx.message.author, "You will now be notified when new manga goes up on FAKKU!. Type !dont_notify_me if you want to be removed from this list.")
     
 @bot.command(pass_context=True, description="Remove yourself from the FAKKU! release notification list")
 async def dont_notify_me(ctx):
+    cnx = mysql.connector.connect(user=password.MySQL_User, password=password.MySQL_Pass,host=password.MySQL_Host, database=password.MySQL_DB)
     query = "delete from releaseNotify where ID = %s"
     values = (ctx.message.author.id,)
-    cursor = cnx.cursor()
+    cursor = cnx.cursor(buffered=True)
     cursor.execute(query, values)
     cursor.execute('commit')
     cursor.close()
-    await bot.send_message(ctx.message.author, "You have been removed from the FAKKU! notification list")
+    cnx.close()
+    await bot.send_message(ctx.message.author, "You have been removed from the FAKKU! notification list. Type !notify_me if you want to be readded to the notification list.")
     
     
-cnx = mysql.connector.connect(user=password.MySQL_User, password=password.MySQL_Pass,host=password.MySQL_Host, database=password.MySQL_DB)
 bot.loop.set_debug(True)
 bot.loop.create_task(fakku_script())
 bot.run(password.Token2) # Put your own discord token here

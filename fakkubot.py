@@ -285,6 +285,7 @@ async def delete_join_message(ctx, number : int):
 @bot.command(pass_context=True)
 async def done(ctx):
     if ctx.message.author.id == '48163936855392256':
+        cnx.close()
         sys.exit()
     else:
         print("Someone is trying to use the done command")
