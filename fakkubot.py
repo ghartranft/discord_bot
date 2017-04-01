@@ -282,7 +282,7 @@ async def delete_join_message(ctx, number : int):
         await bot.say("You don't have permission to use this command")
         
 
-@bot.command(pass_context=True)
+@bot.command(pass_context=True, no_pm=True)
 async def done(ctx):
     if ctx.message.author.id == '48163936855392256':
         cnx.close()
