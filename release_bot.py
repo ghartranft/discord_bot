@@ -35,9 +35,19 @@ async def get_html(url,cookies=None):
         print('http error in get link')
         return None
 
+async def detect_magazine_text(soup):
+    if soup is not None:
+        try:
+            a = soup.find('div', class_="row-left", text='Magazine')  # Find Magazine box
+            text = a.next_sibling.next_sibling.text  # if it exists then we get a value, otherwise None
+            return text
+        except:
+            pass
+    return None
+
 async def detect_store_link(soup):
     if soup is not None:
-        a = soup.findAll('a', class_="button green")  # Find green button class
+        a = soup.findAll('a', class_="button icon green js-purchase-product")  # Find green button class
 
         for x in range(0, len(a)):  # loop through multiple green buttons
             try:
@@ -48,18 +58,7 @@ async def detect_store_link(soup):
                 pass  # 'href' access wont work if it doesn't exist
     return None  # return nothing if store link does not exist
 
-
-async def detect_magazine_text(soup):
-    if soup is not None:
-        try:
-            a = soup.find('div', class_="left", text='Magazine')  # Find Magazine box
-            text = a.next_sibling.next_sibling.text  # if it exists then we get a value, otherwise None
-            return text
-        except:
-            pass
-    return None
-
-def detect_read_link(soup):
+async def detect_read_link(soup):
     if soup is not None:
         c = soup.find('div', class_="images")
         b = c.a['href']
@@ -71,7 +70,7 @@ async def rand():
     r = requests.get('https://www.fakku.net/hentai/random', cookies=cookies.cookies)
     print(r)
     soup = BeautifulSoup(r.text, 'html.parser')
-    link = detect_read_link(soup)
+    link = await detect_read_link(soup)
     name = link[8:-12]
     a = requests.get("https://api.fakku.net/manga/"+name, cookies=cookies.cookies)
     book_json = a.json()['content']
