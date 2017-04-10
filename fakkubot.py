@@ -343,6 +343,7 @@ async def get_join_messages(server_id):
     cursor = cnx.cursor(buffered=True)
     query = ("Select id, Message from joinMessages where ServerID = %s")
     cursor.execute(query, (server_id,))
+    cursor.execute(query, (server_id,))
     return cursor
     
 async def Increment(id):
@@ -372,6 +373,101 @@ async def rank(ctx):
         await bot.say(fmt.format(name, level, exp, rank))
 
 
+async def get_self_assigned_roles(server_id):
+    cursor = cnx.cursor(buffered=True)
+    query = ("Select ServerID, roleID, name from self_assigned_roles where ServerID = %s")
+    cursor.execute(query, (server_id,))
+    roles = list()
+    for serverID,roleID,name in cursor:
+        a = {"serverID":serverID, "roleID":str(roleID),"name":name}
+        roles.append(a)
+    cursor.close()
+    return roles
+
+async def add_self_assigned_role(serverID, roleID, name):
+    cursor = cnx.cursor(buffered=True)
+    statement = "Insert into self_assigned_roles(ServerID, roleID, name) VALUES(%s,%s, %s)"
+    values = (serverID, roleID, name)
+    cursor.execute(statement, values)
+    cursor.execute("commit")
+    cursor.close()
+
+async def delete_role_from_db(serverID, name):
+    query = ("Delete from self_assigned_roles where serverID = %s and name = %s")
+    values = (serverID, name)
+    cursor = cnx.cursor(buffered=True)
+    cursor.execute(query, values)
+    cursor.execute("commit")
+    cursor.close()
+    
+    
+@bot.command(pass_context=True, no_pm=True)
+async def remove_role(ctx, name):
+    permission = False
+    for x in ctx.message.author.roles:
+        if x.permissions.manage_roles:
+            permission = True
+            
+    if permission:
+        await delete_role_from_db(ctx.message.server.id, name)
+        await bot.say("Roles deleted. Probably. Do !get_roles to check the list.")
+    else:
+        await bot.say("You don't have permission to use this function.")
+    
+@bot.command(pass_context=True, no_pm=True)
+async def get_roles(ctx):
+    roles = await get_self_assigned_roles(ctx.message.server.id)
+    await bot.say("List of roles you are allowed to add on this server.")
+    a = list()
+    for x in roles:
+        a.append(x["name"])
+    if len(a) == 0:
+        await bot.say("There are no roles you can add")
+    else:
+        await bot.say(a)
+    
+@bot.command(pass_context=True, no_pm=True)
+async def add_role(ctx, name):
+    permission = False
+    for x in ctx.message.author.roles:
+        if x.permissions.manage_roles:
+            permission = True
+            
+    if permission:
+        result = discord.utils.get(ctx.message.server.roles, name=name)
+        if result is None:
+            await bot.say("Error. Role does not exist")
+        else:
+            await add_self_assigned_role(ctx.message.server.id, result.id, result.name)
+            await bot.say("Role added")
+    else:
+        await bot.say("You don't have permission to use this function.")
+            
+@bot.command(pass_context=True, no_pm=True)
+async def set_role(ctx, ds=None):
+    try:
+        result = discord.utils.get(ctx.message.server.roles, name=ds)
+        if result is not None:
+            roles = await get_self_assigned_roles(ctx.message.server.id)
+            print(roles)
+            print(result.id)
+            for x in roles:
+                if result.id in x["roleID"]:
+                    if result in ctx.message.author.roles:
+                        await bot.remove_roles(ctx.message.author, result)
+                        fmt = "{0}: You no longer have the role of {1}."
+                        await bot.say(fmt.format(ctx.message.author.name, result.name))
+                    else:
+                        await bot.add_roles(ctx.message.author, result)
+                        fmt = "{0}: You now have the role of {1}."
+                        await bot.say(fmt.format(ctx.message.author.name, result.name))
+        else:
+            await bot.say("Not a role you can add.")
+    except discord.Forbidden:
+        await bot.say("You do not have permissions to add roles")
+    except discord.HTTPException:
+        await bot.say("Adding role failed. Blame discord. Try again.")
+        
 print("Connecting to database")
 cnx = mysql.connector.connect(user=password.MySQL_User, password=password.MySQL_Pass, host=password.MySQL_Host, database=password.MySQL_DB)
 exp_users = dict()
