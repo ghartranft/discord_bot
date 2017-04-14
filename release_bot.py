@@ -47,7 +47,8 @@ async def detect_magazine_text(soup):
 
 async def detect_store_link(soup):
     if soup is not None:
-        a = soup.findAll('a', class_="button icon green js-purchase-product")  # Find green button class
+        
+        a = soup.findAll('a', {'class': re.compile('button icon green( js-purchase-product)?')})  # Find green button class
 
         for x in range(0, len(a)):  # loop through multiple green buttons
             try:
@@ -56,7 +57,7 @@ async def detect_store_link(soup):
                     return link  # return store link
             except:
                 pass  # 'href' access wont work if it doesn't exist
-    return None  # return nothing if store link does not exist
+    return None  # return nothing if store link does not exist        
 
 async def detect_read_link(soup):
     if soup is not None:

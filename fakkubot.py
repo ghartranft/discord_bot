@@ -5,6 +5,7 @@ import urllib.request
 import re
 from bs4 import BeautifulSoup
 from discord.ext import commands
+import discord
 import random
 import password
 import requests
