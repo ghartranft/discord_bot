@@ -344,7 +344,6 @@ async def get_join_messages(server_id):
     cursor = cnx.cursor(buffered=True)
     query = ("Select id, Message from joinMessages where ServerID = %s")
     cursor.execute(query, (server_id,))
-    cursor.execute(query, (server_id,))
     return cursor
     
 async def Increment(id):
@@ -468,6 +467,14 @@ async def set_role(ctx, ds=None):
         await bot.say("You do not have permissions to add roles")
     except discord.HTTPException:
         await bot.say("Adding role failed. Blame discord. Try again.")
+ 
+@bot.command()
+async def choose(*items):
+    if len(items) >= 2:
+        r = random.randint(0,len(items)-1)
+        await bot.say(items[r])
+    else:
+        await bot.say("Not enough choices.")
         
 print("Connecting to database")
 cnx = mysql.connector.connect(user=password.MySQL_User, password=password.MySQL_Pass, host=password.MySQL_Host, database=password.MySQL_DB)
