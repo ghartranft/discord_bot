@@ -26,9 +26,9 @@ class cookies_obj:
 cookies = cookies_obj()
 
 
-async def get_html(url,cookies=None):
+async def get_html(url,cookies=None, headers=None):
     try:
-        data = requests.get(url, timeout=10,cookies=cookies)
+        data = requests.get(url, timeout=10,cookies=cookies, headers=headers)
         data.encoding = 'utf-8'
         return data.text
     except:  # For some reason HTTPError wouldnt catch an HTTPError ?
@@ -73,7 +73,8 @@ async def rand():
     soup = BeautifulSoup(r.text, 'html.parser')
     link = await detect_read_link(soup)
     name = link[8:-12]
-    a = requests.get("https://api.fakku.net/manga/"+name, cookies=cookies.cookies)
+    a = requests.get("https://api.fakku.net/manga/"+name, cookies=cookies.cookies, headers={'Sindalf': 'True'})
+    print(a)
     book_json = a.json()['content']
     m = manga(book_json)
     m.populate()
@@ -119,14 +120,13 @@ async def get_front_page_links(soup):
         links.add(link)
     return links
     
-async def must_get_request(url,cookies=None):
+async def must_get_request(url,cookies=None, headers=None):
     while True:
         try:
-            data = requests.get(url, timeout=10,cookies=cookies)
+            data = requests.get(url, timeout=10,cookies=cookies, headers=headers)
             data.encoding = 'utf-8'
             return data
         except:
-            print('http error!')
             await asyncio.sleep(60)  # sleep to not grab a dead link over and over
             
 async def fakku_script():
@@ -148,7 +148,7 @@ async def fakku_script():
             i = 0
             for book in links:
                 i += 1
-                data = await must_get_request("https://api.fakku.net/manga/"+book, cookies=cookies.cookies)
+                data = await must_get_request("https://api.fakku.net/manga/"+book, cookies=cookies.cookies, headers={'Sindalf': 'True'})
                 book_json = data.json()['content']
                 m = manga(book_json)
                 m.populate()
@@ -161,7 +161,7 @@ async def fakku_script():
                     magazine_text = await detect_magazine_text(soup)  # see if the magazine link exists
                     m.set_magazine_text(magazine_text)  # set magazine link
 
-                print("New Release!")
+                
                 release_string = await manga_string(m, 'New Release! \n')
                 await bot.send_message(bot.get_channel('196487186860867584'), release_string)  # send release details into the channel
                 await bot.send_message(bot.get_channel('202830118324928512'), release_string)

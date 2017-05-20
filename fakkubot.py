@@ -30,6 +30,14 @@ async def on_member_join(member):
     if server.id == '222895741918511105':
         fmt = 'Welcome {0.mention} to {1.name}!'
         await bot.send_message(server, fmt.format(member, server))
+        
+@bot.event
+async def on_message_delete(message):
+    server = message.server
+    if server.id == '222895741918511105':
+        fmt = '{0.author.name} has deleted the message:\n{0.content} \nServer: {0.server.name} \nChannel: {0.channel}'
+        await bot.send_message(bot.get_channel('202830118324928512'), fmt.format(message))
+
 '''
 @bot.command(description='Get a random post from r/blackpeopletwitter')
 async def bpt(limit=100):
